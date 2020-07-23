@@ -16,7 +16,7 @@ body {
 }
 #current {
     z-index: 0;
-    width: 30em;
+    width: 20em;
     margin: 1em auto;
     border-radius: .5em;
     padding: .5em;
