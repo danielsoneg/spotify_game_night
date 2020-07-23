@@ -4,6 +4,8 @@ import tekore as tk
 import asyncio
 import aiofiles
 
+from utils import store
+
 logging.basicConfig(level=logging.DEBUG)
 
 client_id, client_secret, redirect_uri = tk.config_from_file("./config.ini")
@@ -36,17 +38,6 @@ def token_path(username):
         raise Exception("called for token_path without username or token_dir, avoiding potential CALAMITY")
     return f"./{token_dir}/{username}"
 
-async def del_token(name):
-    path = token_path(name)
-    if not os.path.isfile(path):
-        return
-    await aiofiles.os.remove(path)
-
-async def read_token(name):
-    async with aiofiles.open(token_path(name)) as fh:
-        token = await fh.read()
-    return token.strip()
-
 async def refresh_token(token_str):
     try:
         token = await creds.refresh_user_token(token_str)
@@ -76,7 +67,7 @@ async def get_main(token_str):
 
 async def setup_follower(username):
     try:
-        token_str = await read_token(username)
+        token_str = await store.read_token(username)
         display_name, spotify = await get_follower(username, token_str)
     except:
         logging.exception(f"Failed to get user {username}")
@@ -84,9 +75,6 @@ async def setup_follower(username):
     _, success = await set_device(display_name, spotify)
     if not success:
         return username, None
-    
-        
-
 
 async def get_follower(username, token_str):
     try:
