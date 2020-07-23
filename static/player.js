@@ -18,28 +18,24 @@ window.onSpotifyWebPlaybackSDKReady = async () => {
       return state.track_window.current_track;
     }
 
-    function track_title(current_track) {
-      name = current_track.name;
-      artist = current_track.artists[0].name;
-      return `${artist} - ${name}`;
-    }
-
-    function album_art(current_track) {
-      return current_track.album.images[1].url;
+    function album_art(current_track, i=1) {
+      return current_track.album.images[i].url;
     }
     const title = document.getElementById("title")
+    const artist = document.getElementById("artist")
     const art = document.getElementById("art")
     const volSlider = document.getElementById("volume")
-    const volValue = document.getElementById("volval")
+    const volLabel = document.getElementById("vollabel")
+    const bg = document.getElementById("background")
     title.innerText = "Waiting..."
     // Playback status updates
     player.addListener('player_state_changed', state => { 
       console.log(state);
       current_track = get_track(state);
-      console.log(track_title(current_track));
-      title.innerText = track_title(current_track);
+      title.innerText = current_track.name;
+      artist.innerText = current_track.artists.map(a => a.name).join(", ");
       art.src = album_art(current_track);
-      
+      bg.style.backgroundImage = `url(${album_art(current_track,2)})` 
     });
 
     // Ready
@@ -55,9 +51,13 @@ window.onSpotifyWebPlaybackSDKReady = async () => {
     volSlider.onchange = () => {
       player.setVolume(volSlider.value / 100).then(() => {
         player.getVolume().then(volume => {
-          let volume_percentage = volume * 100;
-          console.log(`The volume of the player is ${volume_percentage}%`);
-          volValue.innerText = volume_percentage;
+          let volume_percentage = `${volume * 100}%`;
+          console.log(`The volume of the player is ${volume_percentage}`);
+          if (volume > .7) { volLabel.innerText = "🔊" } else if (volume > .35) { 
+            volLabel.innerText = "🔉"
+          } else if (volume > 0) {
+            volLabel.innerText = "🔈"
+          } else { volLabel.innerText = "🔇"}
         });
       });
     }

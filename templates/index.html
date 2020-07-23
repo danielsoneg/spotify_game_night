@@ -2,13 +2,27 @@
 <html>
 <head>
   <title>Game Night</title>
-  <style></style>
+  <link rel="stylesheet" href="/static/style.css"></link>
 </head>
 <body>
+  <div id="background"></div>
   <div id="current">
-    <img height=64 width=64 id="art"></img><br/>
-    <span id="title">Loading...</span><br/>
-    Volume: <input id="volume" type="range" min="0" max="100" value="100"></input><span id="volval">100%</span>
+    <img height=64 width=64 id="art"></img>
+    <div id="info">
+      <div id="track">
+        <span id="title"></span>
+        <span id="artist">&nbsp;</span>
+      </div>
+      <div id="controls">
+        <div id="vol">
+          <span id="vollabel">🔊</span>
+          <input id="volume" type="range" min="0" max="100" value="100"></input>
+        </div>
+        <div id="logout">
+          <a href="/logout">log out ❌</a>
+        </div>
+      </div>
+    </div>
   </div>
   <script src="https://sdk.scdn.co/spotify-player.js"></script>
   <script src="/static/player.js"></script>
