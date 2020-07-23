@@ -187,7 +187,6 @@ async def stop_all(followers):
         stop(spotify) for spotify in followers.values()
     ])
 
-async def sync_loop()
 
 async def main():
     main, followers = await get_clients()
