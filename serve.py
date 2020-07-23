@@ -4,6 +4,8 @@ import json
 import tekore as tk
 from quart import Quart, escape, request, redirect, url_for, session, render_template
 
+from utils import store
+
 logging.basicConfig(level=logging.INFO)
 
 app = Quart(__name__)
@@ -18,32 +20,36 @@ scopes = " ".join((
     "streaming", "user-read-email", "user-read-private"
     ))
 
-def write_tokens(user, token):
-    logging.info(f"Asked to write tokens for {user}")
-    with open(f"tokens/{user}", "w") as fh:
-        fh.write(token.refresh_token)
-
-def get_main_token():
-    logging.info(f"Asked to read main token")
-    with open("tokens/main") as fh:
-        return fh.read().strip()
+def set_session_token(token):
+    session["r_t"] = token.refresh_token
 
 @app.route("/main", methods=["GET"])
 async def main():
     try:
-        token = creds.refresh_user_token(get_main_token())
+        main_token = await store.get_token("main")
+    except:
+        return "No token for main user. Please register a main user."
+    try:
+        token = creds.refresh_user_token(main_token)
         spotify = tk.Spotify(token)
     except:
-        return redirect(creds.user_authorisation_url(scope=scopes, state="main"))
+        "Bad token for main user. Please reset and register main user"
     else:
         current_user = spotify.current_user()
         now_playing = spotify.playback()
         return f"{current_user}\n{now_playing}"
 
+@app.route("/main/register")
+async def main_register():
+    if await store.have_token("main"):
+        return f"Already have a main user. Go to <a href='{url_for('main_reset')}'>reset</a> to clear main."
+    return redirect(creds.user_authorisation_url(scope=scopes, state="main"))
+        
+
 @app.route("/main/reset")
 async def main_reset():
     logging.info("ok, delete?")
-    os.unlink("./tokens/main")
+    await store.delete_token("main")
     return "Reset main"
 
 #@app.route("/main/nowplaying")
@@ -55,7 +61,7 @@ async def logout():
         token = creds.refresh_user_token(session["r_t"])
         user = tk.Spotify(token).current_user().id
         if user:
-            os.unlink(f"./tokens/{user}")
+            await store.delete_token(user)
     except:
         return "Could not log out. Are you sure you're logged in?"
     else:
@@ -68,7 +74,7 @@ async def auth():
     logging.warning(token.access_token)
     if request.args["state"] == "main":
         logging.info("state = main")
-        write_tokens("main", token)
+        await store.write_token("main", token.refresh_token)
         return redirect("/main")
     else:
         logging.info("state != main")
@@ -76,12 +82,9 @@ async def auth():
         set_session_token(token)
         logging.info(session["r_t"])
         user = tk.Spotify(token).current_user().id
-        await write_tokens(user, token)
+        await store.write_token(user, token.refresh_token)
         logging.info("OK here we are")
         return redirect(f"/")
-
-def set_session_token(token):
-    session["r_t"] = token.refresh_token
 
 @app.route("/token", methods=["GET"])
 async def token():
