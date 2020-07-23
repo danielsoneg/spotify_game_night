@@ -47,6 +47,18 @@ def main_reset():
 #@app.route("/main/nowplaying")
 #def main_np():
 
+@app.route("/logout")
+def logout():
+    try:
+        token = creds.refresh_user_token(session["r_t"])
+        user = tk.Spotify(token).current_user().id
+        if user:
+            os.unlink(f"./tokens/{user}")
+    except:
+        return "Could not log out. Are you sure you're logged in?"
+    else:
+        return "Logged out."
+
 @app.route("/auth", methods=["GET"])
 def auth():
     logging.warn("Got token: ", request.args)
@@ -81,8 +93,6 @@ def do_auth():
         return redirect(creds.user_authorisation_url(scope=scopes, state="follow"))
     else:
         return render_template("index.html")
-
-
 
 @app.route("/player")
 def player():
