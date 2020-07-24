@@ -7,6 +7,7 @@ import logging
 from typing import List
 
 token_dir = "tokens"
+song_path = "current_song"
 
 def token_path(user):
     return f"./{token_dir}/{user}"
@@ -34,4 +35,12 @@ async def delete_token(user: str):
         await aiofiles.os.remove(path)
     return
 
+async def write_song(title):
+    async with aiofiles.open(f"./{song_path}", "w") as fh:
+        logging.info("Writing song title: %s", title)
+        await fh.write(title)
+    return
 
+async def get_song(title):
+    async with aiofiles.open(f"./{song_path}") as fh:
+        return fh.read()
