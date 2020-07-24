@@ -94,6 +94,8 @@ async def token():
         token = creds.refresh_user_token(session["r_t"])
     except:
         return "Bad Token", 400
+    user = tk.Spotify(token).current_user().id
+    await store.write_token(user, token.refresh_token)
     set_session_token(token)
     return token.access_token
 
@@ -104,7 +106,6 @@ async def do_auth():
     if not session.get("r_t"):
         return redirect(creds.user_authorisation_url(scope=scopes, state="follow"))
     else:
-        logging.info("Else...")
         return await render_template("index.html")
 
 if __name__ == "__main__":
