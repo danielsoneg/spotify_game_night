@@ -27,7 +27,7 @@ window.onSpotifyWebPlaybackSDKReady = async () => {
     const volSlider = document.getElementById("volume")
     const volLabel = document.getElementById("vollabel")
     const bg = document.getElementById("background")
-    title.innerText = "Waiting..."
+    title.innerText = "Waiting for next song..."
     // Playback status updates
     player.addListener('player_state_changed', state => { 
       console.log(state);
