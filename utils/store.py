@@ -2,6 +2,7 @@ import os
 import asyncio
 import aiofiles
 import aiofiles.os
+import json
 import logging
 
 from typing import List
@@ -35,12 +36,11 @@ async def delete_token(user: str):
         await aiofiles.os.remove(path)
     return
 
-async def write_song(title):
+async def write_song(song_info):
     async with aiofiles.open(f"./{song_path}", "w") as fh:
-        logging.info("Writing song title: %s", title)
-        await fh.write(title)
-    return
+        await fh.write(song_info)
 
-async def get_song(title):
+async def get_song():
     async with aiofiles.open(f"./{song_path}") as fh:
-        return fh.read()
+        song_info = await fh.read()
+    return json.loads(song_info)
