@@ -25,12 +25,16 @@ async def play_track(user, client, track_id, retry=False):
     try:
         await client.playback_start_tracks([track_id,])
         return user, True
-    except tk.NotFound:
+    except:
+        logging.exception("Error playng track for user %s", user)
         if retry:
             return user, False
-        _, client = await spotify.get_user(client.token.refresh_token) 
-        await spotify.set_device(client)
-        return await play_track(user, client, track_id, retry=True)
+        try:
+            _, client = await spotify.get_user(client.token.refresh_token) 
+            await spotify.set_device(client)
+            return await play_track(user, client, track_id, retry=True)
+        except:
+            return user, False
 
 async def stop(client):
     try:
