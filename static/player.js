@@ -3,7 +3,7 @@ window.onSpotifyWebPlaybackSDKReady = async () => {
       name: 'Game Night',
       getOAuthToken: async cb => { 
         const token_resp = await fetch("/token", {"redirect":"manual"})
-        if (!token_resp.ok){ window.location = "/"; }
+        if (!token_resp.ok){ console.log(token_resp); await new Promise(r => setTimeout(r, 2000)); window.location = "/"; }
         const token = await token_resp.text()
         cb(token); }
     });
