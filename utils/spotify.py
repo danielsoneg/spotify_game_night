@@ -4,10 +4,19 @@ import tekore as tk
 
 Credentials = None
 
+scopes = " ".join((
+    "user-read-playback-state",
+    "user-modify-playback-state",
+    "streaming", "user-read-email", "user-read-private"
+    ))
+
 def configure(config_path):
     client_id, client_secret, redirect_uri = tk.config_from_file(config_path, section="SPOTIFY")
     global Credentials
     Credentials = tk.Credentials(client_id, client_secret, redirect_uri, asynchronous=True)
+
+def auth_url(state):
+    return Credentials.user_authorisation_url(scope=scopes, state=state)
 
 ########
 # PLAYBACK
@@ -46,6 +55,8 @@ async def get_current_track(client, retry=False):
 #######
 # BASIC USER SETUP
 #######
+async def token_from_code(auth_code):
+    return await Credentials.request_user_token(auth_code)
 
 async def get_user(token_str):
     try:
@@ -59,6 +70,16 @@ async def get_user(token_str):
         display_name = user.display_name
         logging.info(f"Got client for {display_name}")
         return display_name, client
+
+async def get_user_id(token):
+    try:
+        client = await get_client(token)
+        user = await client.current_user()
+    except Exception:
+        logging.exception(f"Could not refresh token for {username}")
+        raise
+    else:
+        return user.id
 
 async def refresh_token(token_str):
     try:
