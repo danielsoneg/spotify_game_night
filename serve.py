@@ -21,27 +21,45 @@ store.configure(config_path)
 def set_session_token(token):
     session["r_t"] = token.refresh_token
 
+def current_track_info(now_playing):
+    if now_playing is None:
+        title = "Not Playing"
+        artist = ""
+        playing = False
+        device = "None"
+        art = ""
+    else:
+        song = now_playing.item
+        title = song.name
+        artist = ", ".join([artist.name for artist in song.artists])
+        playing = now_playing.is_playing
+        device = now_playing.device.name
+        art = song.album.images[2].url
+    return {"title": title, "artist": artist, "playing": playing, "device":device, "art":art}
+
+
 @app.route("/main", methods=["GET"])
 async def main():
     try:
         main_token = await store.get_token("main")
     except:
-        return "No token for main user. Please register a main user."
+        return f"No token for main user. Please <a href='{url_for('main_register')}'>log in to register as main user</a>."
     try:
         token = await spotify.refresh_token(main_token)
         client = await spotify.get_client(token)
     except:
         "Bad token for main user. Please reset and register main user"
     else:
-        current_user, now_playing = await asyncio.gather(
-            client.current_user(), client.playback())
-        return f"{current_user}\n{now_playing}"
+        current_user, now_playing, followers = await asyncio.gather(
+            client.current_user(), client.playback(), store.list_tokens())
+        track_info = current_track_info(now_playing)
+        return await render_template("main.html", track_info=track_info, name=current_user.display_name, followers=followers)
 
 @app.route("/main/register")
 async def main_register():
     if await store.have_token("main"):
         return f"Already have a main user. Go to <a href='{url_for('main_reset')}'>reset</a> to clear main."
-    return redirect(spotify.auth_url())
+    return redirect(spotify.auth_url("main"))
         
 
 @app.route("/main/reset")

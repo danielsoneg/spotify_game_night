@@ -1,0 +1,31 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Game Night: Main</title>
+  <link rel="stylesheet" href="/static/style.css"></link>
+</head>
+<body>
+  <h1>{{name}} on {{track_info["device"]}}</h1>
+  <h2>Now Playing</h2>
+  <div id="current">
+    <img height=64 width=64 id="art" src="{{ track_info['art'] }}"></img>
+    <div id="info">
+      <div id="track">
+        <span id="title">{{ track_info["title"] }}</span>
+        <span id="artist">{{ track_info["artist"] }}</span>
+      </div>
+      <div id="controls">
+      </div>
+    </div>
+  </div>
+  <h2>Followers:</h2>
+  <ol>
+    {% for follower_id in followers: %}
+    {% if follower_id != "main" %}<li>{{ follower_id }}</li>{% endif %}
+    {% endfor %}
+  </ol>
+  <h2>Actions</h2>
+  <a href="/main/reset">Deregister main user</a>
+</body>
+</html>
