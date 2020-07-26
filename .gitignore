@@ -1,3 +1,4 @@
 config.ini
 tokens
 **/__pycache__/*
+.store
