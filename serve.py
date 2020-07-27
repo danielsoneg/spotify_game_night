@@ -72,14 +72,19 @@ async def main_reset():
 
 @app.route("/logout")
 async def logout():
-    try:
-        token = await spotify.get_token(session["r_t"])
-        user_id = await spotify.get_user_id(token)
-        await store.delete_token(user)
-    except:
-        return "Could not log out. Are you sure you're logged in?"
-    else:
-        return "Logged out."
+    async def logout_process(token_str):
+        logging.info("Starting logout")
+        if not token_str:
+            return
+        try:
+            token = await spotify.refresh_token(token_str)
+            user_id = await spotify.get_user_id(token)
+            logging.info("Deregistering %s", user_id)
+            await store.delete_token(user_id)
+        except:
+            logging.exception("Failed to deregister user")
+    asyncio.create_task(logout_process(session.get("r_t")))
+    return "Logged out."
 
 @app.route("/auth", methods=["GET"])
 async def auth():
