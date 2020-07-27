@@ -1,10 +1,12 @@
 import asyncio
+import json
+import logging
+import os
 import random
 import string
-import os
-import logging
-import json
+
 import tekore as tk
+
 from quart import Quart, escape, request, redirect, url_for, session, render_template
 
 from utils import store

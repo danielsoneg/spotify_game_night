@@ -1,8 +1,9 @@
+import aiofiles
+import asyncio
 import logging
 import os
+
 import tekore as tk
-import asyncio
-import aiofiles
 
 from utils import spotify
 from utils import store
