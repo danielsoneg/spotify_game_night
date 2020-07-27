@@ -66,12 +66,9 @@ async def main_register():
 
 @app.route("/main/reset")
 async def main_reset():
-    logging.info("ok, delete?")
+    logging.info("Deregistering main user")
     await store.delete_token("main")
     return "Reset main"
-
-#@app.route("/main/nowplaying")
-#def main_np():
 
 @app.route("/logout")
 async def logout():
@@ -86,46 +83,49 @@ async def logout():
 
 @app.route("/auth", methods=["GET"])
 async def auth():
-    logging.warning("Got code: %s", request.args["code"])
+    logging.info("[AUTH FLOW] Got code: %s", request.args["code"])
     token = await spotify.token_from_code(request.args["code"])
-    logging.warning(token.access_token)
+    logging.info("[AUTH FLOW] Got token: %s", token.access_token)
     if request.args["state"] == "main":
-        logging.info("state = main")
+        logging.info("[AUTH FLOW] Auth is for main user.")
         await store.write_token("main", token.refresh_token)
+        logging.info("[AUTH FLOW] Redirect to /main")
         return redirect("/main")
     else:
-        logging.info("state != main")
-        logging.info("refresh token: %s", token.refresh_token)
+        logging.info("[AUTH FLOW] Auth is for a follower.")
+        logging.info("[AUTH FLOW] refresh token: %s", token.refresh_token)
         set_session_token(token)
-        logging.info(session["r_t"])
+        logging.info("[AUTH FLOW] Session cookie: %s", session["r_t"])
         user_id = await spotify.get_user_id(token)
         await store.write_token(user_id, token.refresh_token)
-        logging.info("OK here we are")
+        logging.info("[AUTH FLOW] Redirect to /.")
         return redirect(f"/")
 
 @app.route("/token", methods=["GET"])
 async def token():
+    logging.info("[AUTH FLOW: Token] Checking Token")
     if not session.get("r_t"):
-        logging.info("Missing token")
-        return "Missing Token", 400
+        logging.info("[AUTH FLOW: Token] Missing cookie")
+        return "Missing cookie", 400
     try:
         token = await spotify.refresh_token(session["r_t"])
         user_id = await spotify.get_user_id(token)
     except:
-        logging.exception("Couldn't refresh token")
+        logging.exception("[AUTH FLOW: Token] Couldn't refresh token")
         return "Bad Token", 400
+    logging.info("[AUTH FLOW: Token] Got token: %s", token.refresh_token)
     await store.write_token(user_id, token.refresh_token)
     set_session_token(token)
     return token.access_token
 
 @app.route('/', methods=["POST", "GET", "PUT"])
-async def do_auth():
-    logging.info("Back here")
-    logging.info(session.get("r_t"))
+async def index():
+    logging.info("[AUTH FLOW: index] Hit Index")
     if not session.get("r_t"):
-        logging.info("Redirecting")
+        logging.info("[AUTH FLOW: index] No Session cookie. Redirecting to auth")
         return redirect(spotify.auth_url("follow"))
     else:
+        logging.info("[AUTH FLOW: index] Session cookie: %s", session.get("r_t"))
         return await render_template("index.html")
 
 if __name__ == "__main__":
