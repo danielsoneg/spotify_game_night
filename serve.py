@@ -1,4 +1,6 @@
 import asyncio
+import random
+import string
 import os
 import logging
 import json
@@ -11,7 +13,7 @@ from utils import spotify
 logging.basicConfig(level=logging.INFO)
 
 app = Quart(__name__)
-app.secret_key = "asdfjdashlgjsad"
+app.secret_key = str(random.choices(string.printable, k=128))
 
 config_path = "./config.ini"
 
