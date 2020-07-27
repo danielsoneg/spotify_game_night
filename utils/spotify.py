@@ -7,7 +7,7 @@ and do not perform any of the actual main and follower syncing.
 """
 import logging
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import tekore as tk
 
@@ -99,16 +99,43 @@ async def stop(client: tk.Spotify) -> None:
     when you try to stop an already stopped client, instead of just saying
     "yes sure that's fine" and going and sipping tea or something.
 
-    Parameters:
-    client    
-
+    Parameters
+    ----------
+    client: tk.Spotify
+        Client to stop playback on
+    
+    Raises
+    ------
+    Nothing
     """
     try:
         await client.playback_pause()
     except:
         pass
 
-async def get_current_track(client, retry=False):
+async def get_current_track(client: tk.Spotify, retry: bool=False) -> Optional[tk.model.CurrentlyPlaying]:
+    """Get the currently-playing track.
+
+    This function will retry once, attempting to reload the client to get past
+    token freshness issues.
+
+    Parameters
+    ----------
+    client: tk.Spotify
+        Spotify client to query
+    retry: bool
+        Whether this query is a retry. If False, client will be reloaded and a retry
+        will be attempted if Spotify returns Unauthorized.
+    
+    Returns
+    -------
+    tk.model.CurrentlyPlaying or None: Info about the currently playing track. Tekore
+        returns None if nothing is playing, so we do as well.
+    
+    Raises
+    ------
+    tk.Unauthorised if the client could not be authorized.
+    """
     try:
         current = await client.playback_currently_playing()
     except tk.Unauthorised:
@@ -125,51 +152,131 @@ async def get_current_track(client, retry=False):
 #######
 # BASIC USER SETUP
 #######
-async def token_from_code(auth_code):
+async def token_from_code(auth_code: str) -> tk.Token:
+    """Get a spotify token from an authorization code.
+
+    Parameters
+    ----------
+    auth_code: str
+        Authorization code returned from Spotify.
+    
+    Returns
+    -------
+    tk.Token: Token generated from the authorization code.
+    """
     return await Credentials.request_user_token(auth_code)
 
-async def get_user(token_str):
+async def get_user(token_str: str) -> Tuple[str, tk.Spotify]:
+    """Get a client with a token string
+
+    Parameters
+    ----------
+    token_str: str
+        String of a refresh token.
+    
+    Returns
+    -------
+    (str, tk.Spotify): Tuple of the user's display name and a spotify client. 
+    """
     try:
         token = await refresh_token(token_str)
         client = await get_client(token)
         user = await client.current_user()
     except Exception:
-        logging.exception(f"Could not refresh token for {username}")
+        logging.exception("Could not refresh token")
         raise
     else:
         display_name = user.display_name
         logging.info(f"Got client for {display_name}")
         return display_name, client
 
-async def get_user_id(token):
+async def get_user_id(token: tk.Token) -> str:
+    """Return a user's ID from their token.
+
+    Parameters
+    ----------
+    token: tk.Token
+        Spotify Token to query
+    
+    Returns
+    -------
+    str: The user's ID.
+    """
     try:
         client = await get_client(token)
         user = await client.current_user()
     except Exception:
-        logging.exception(f"Could not refresh token for {username}")
+        logging.exception(f"Could not get client or user from token")
         raise
     else:
         return user.id
 
-async def refresh_token(token_str):
+async def refresh_token(token_str: str) -> tk.Token:
+    """Return a refreshed Token given a token refresh string
+
+    Parameters
+    ----------
+    token_str: str
+        Refresh token string
+
+    Returns
+    -------
+    tk.Token: A refreshed Token
+
+    Raises
+    ------
+    BadToken for any issues refreshing the token.
+    """
     try:
         token = await Credentials.refresh_user_token(token_str)
     except:
+        logging.exception("Failed to refresh token")
         raise BadToken("Couldn't refresh token")
     else:
         return token
 
-async def get_client(token):
+async def get_client(token: tk.Token) -> tk.Spotify:
+    """Get a spotify client from a token.
+
+    Parameters
+    ----------
+    token: tk.Token
+        An up-to-date token to generate a client from
+    
+    Returns
+    -------
+    tk.Spotify: Spotify client
+
+    Raises
+    ------
+    BadClient for issues creating the client.
+    """
     try:
         client = tk.Spotify(token, asynchronous=True)
     except:
+        logging.exception("Could not create client")
         raise BadClient("Couldn't create client")
     else:
         return client
 
-async def set_device(client):
+async def set_device(client: tk.Spotify, device_name: str="Game Night") -> None:
+    """Set the active device for the client to a device that matches the provided name.
+
+    If multiple matching devices are found, the first one will be used. 
+
+    Parameters
+    ----------
+    client: tk.Spotify
+        Client to set the device on
+    device_name: str = "Game Night"
+        Name of the device to make active.
+    
+    Raises
+    ------
+    NoDevices if no devices are found.
+    """
     devices = await client.playback_devices()
-    devices = [device for device in devices if device.name == "Game Night"]
+    devices = [device for device in devices if device.name == device_name]
     if not devices:
         raise NoDevices("No valid devices found")
     else:
