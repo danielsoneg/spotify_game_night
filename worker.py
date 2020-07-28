@@ -25,6 +25,8 @@ async def check_new(leader: tk.Spotify, current_id: Optional[str], current_playi
     """Check if the leader is playing a different track than the provided ID.
 
     This method also writes out new song information using the store.
+    If spotify throws an error (perish the thought), pretend nothing changed,
+    we'll grab it again next time.
 
     Parameters
     ----------
@@ -40,7 +42,11 @@ async def check_new(leader: tk.Spotify, current_id: Optional[str], current_playi
     (bool, str, bool): Whether the song has changed, what the new ID is if so, 
         and whether the leader is playing.
     """
-    new = await spotify.get_current_track(leader)
+    try:
+        new = await spotify.get_current_track(leader)
+    except:
+        logging.exception("Error getting currently playing track.")
+        return False, current_id, current_playing
     new_id = new.item.id if new else None
     new_playing = new.is_playing if new else False
     changed = (new_id != current_id or new_playing != current_playing)
