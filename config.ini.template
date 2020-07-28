@@ -1,0 +1,7 @@
+[STORE]
+PATH = ./.store
+
+[SPOTIFY]
+SPOTIFY_CLIENT_ID = <Spotify Client ID Goes Here>  
+SPOTIFY_CLIENT_SECRET = <Client Secret goes here>
+SPOTIFY_REDIRECT_URI = $YOUR_SITE/auth
