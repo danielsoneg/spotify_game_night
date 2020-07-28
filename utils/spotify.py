@@ -19,6 +19,15 @@ Scopes = " ".join((
     "streaming", "user-read-email", "user-read-private"
     ))
 
+class BadToken(Exception):
+    pass
+
+class BadClient(Exception):
+    pass
+
+class NoDevices(Exception):
+    pass
+
 def configure(config_path: str):
     """Read the "SPOTIFY" section from the given config path and configure the Credentials object.
 

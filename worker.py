@@ -8,30 +8,8 @@ import tekore as tk
 from utils import spotify
 from utils import store
 
-
-logging.basicConfig(level=logging.DEBUG)
-
-client_id, client_secret, redirect_uri = tk.config_from_file("./config.ini", section="SPOTIFY")
-creds = tk.Credentials(client_id, client_secret, redirect_uri, asynchronous=True)
-
-spotify.configure("./config.ini")
-
-token_dir = "tokens"
-
 class FatalError(Exception):
     pass
-
-class BadToken(Exception):
-    pass
-
-class BadClient(Exception):
-    pass
-
-class NoDevices(Exception):
-    pass
-
-# In a real environment we'd be using a data store. In here, we're sharing a dictionary.
-followers = {}
 
 #######
 # SYNC OPERATIONS
