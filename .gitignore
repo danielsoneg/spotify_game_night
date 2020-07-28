@@ -1,4 +1,4 @@
-config.ini
-tokens
 **/__pycache__/*
+.vscode
+config.ini
 .store
