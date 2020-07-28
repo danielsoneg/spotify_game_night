@@ -1,3 +1,6 @@
+"""
+Main API server
+"""
 import asyncio
 import json
 import logging
