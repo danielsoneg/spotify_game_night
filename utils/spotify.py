@@ -151,7 +151,7 @@ async def get_current_track(client: tk.Spotify, retry: bool=False) -> Optional[t
         if retry:
             logging.exception("Could not get current track")
             raise
-        _, client = get_user(client.token.refresh_token)
+        _, client = await get_user(client.token.refresh_token)
         return await get_current_track(client, retry=True)
     if not current:
         return None
