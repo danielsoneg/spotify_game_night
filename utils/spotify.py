@@ -291,3 +291,62 @@ async def set_device(client: tk.Spotify, device_name: str="Game Night") -> None:
     else:
         device = devices[0].id
         await client.playback_transfer(device)
+
+#########
+# Utility
+#########
+async def refresh_client(client: tk.Spotify) -> tk.Spotify:
+    """Return a new client using the given client's token.
+
+    Parameters
+    ----------
+    client: tk.Spotify
+        The client to be refreshed
+    
+    Returns
+    -------
+    tk.Spotify: a new client built from the given client's refresh token.
+
+    Raises
+    ------
+    BadToken if the client couldn't be refreshed
+    """
+    try:
+        _, client = await spotify.get_user(client.token.refresh_token)
+    except Exception as err:
+        logging.exception("Error refreshing client")
+        raise BadToken("Could not refresh client using client's token") from err
+    else:
+        return client
+
+def client_is_good(client: Optional[tk.Spotify], token_str: str) -> bool:
+    """Check if a client is still good.
+
+    NOTE: this is not an async function.
+
+    "Good" here means the access token has not expired and matches
+    the provided token_str. "None" is allowed as a convenience, if "None"
+    is passed in as the client, the function returns False.
+
+    Parameters
+    ----------
+    client: tk.Spotify or None
+        Client to check if we have one.
+    token_str: str
+        Token from the store to check against the client
+    
+    Returns
+    -------
+    bool: True if provided a client, that client has a token that matches
+        the provided string, and the access token has not expired.
+    """
+    if client is None:
+        # We got passed no client, which is obviously bad
+        return False
+    if token_str != client.token.refresh_token: 
+        # The token in the client doesn't match the one on disk.
+        return False
+    if client.token.is_expiring:
+        # The access token is 60sec away from expiring
+        return False
+    return True
