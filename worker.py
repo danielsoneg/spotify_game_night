@@ -150,7 +150,7 @@ async def setup_follower(user_id: str, client: Optional[tk.Spotify]) -> Tuple[st
     """
     try:
         token_str = await store.get_token(user_id)
-        if client is not None and token_str == client.token.refresh_token:
+        if spotify.client_is_good(client, token_str):
             return user_id, client
         display_name, client = await spotify.get_user(token_str) 
         await spotify.set_device(client)
@@ -198,9 +198,9 @@ async def check_leader(leader: Optional[tk.Spotify]) -> Optional[tk.Spotify]:
     if not await store.have_token("main"):
         return None
     try:
-        token = await store.get_token("main")
-        if leader is None or token != leader.token.refresh_token:
-            username, leader = await spotify.get_user(token)
+        token_str = await store.get_token("main")
+        if not spotify.client_is_good(leader, token_str):
+            username, leader = await spotify.get_user(token_str)
             logging.info(f"Got leader user: {username}")
         return leader
     except Exception as err:
