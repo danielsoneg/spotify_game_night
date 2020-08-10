@@ -2,7 +2,7 @@ body {
     background-color: #000;
     font-family: Arial, Helvetica, sans-serif;
     color: rgb(226,226,226);
-    width: 40em;
+    width: 70em;
     margin: 0 auto;
 }
 #background {
@@ -20,7 +20,7 @@ body {
 }
 #current {
     z-index: 0;
-    width: 20em;
+    width: 35em;
     margin: 1em auto;
     border-radius: .5em;
     padding: .5em;
@@ -69,7 +69,8 @@ body {
     justify-content: left;
 }
 #vol > input {
-    transform: scale(.8);
+    transform: scale(.95);
+    width: 28em;
     margin: 0;
     padding: 0;
 }

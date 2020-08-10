@@ -50,11 +50,13 @@ window.onSpotifyWebPlaybackSDKReady = async () => {
     });
 
     volSlider.onchange = () => {
-      player.setVolume(volSlider.value / 100).then(() => {
+      player.setVolume(volSlider.value / 400).then(() => {
         player.getVolume().then(volume => {
           let volume_percentage = `${volume * 100}%`;
           console.log(`The volume of the player is ${volume_percentage}`);
-          if (volume > .7) { volLabel.innerText = "🔊" } else if (volume > .35) { 
+          if (volume > .18) {
+            volLabel.innerText = "🔊"
+          } else if (volume > .09) { 
             volLabel.innerText = "🔉"
           } else if (volume > 0) {
             volLabel.innerText = "🔈"
