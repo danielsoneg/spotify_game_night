@@ -6,6 +6,9 @@
 - Have Main page. it's not good, but it is.
 
 # PRIORITY
+- Figure out error handling flow. Did stupid things initially, make retries more explicit
+- handle logout better - chrome's not firing this
+
 
 # TODO
 - Overall:
