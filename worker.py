@@ -47,11 +47,11 @@ async def check_new(leader: tk.Spotify, current_id: Optional[str], current_playi
     except:
         logging.exception("Error getting currently playing track.")
         return False, current_id, current_playing
-    new_id = new.item.id if new else None
-    new_playing = new.is_playing if new else False
+    new_id = new.item.id if new and new.item else None
+    new_playing = new.is_playing if new and new.item else False
     changed = (new_id != current_id or new_playing != current_playing)
     if changed:
-        new_track = new.item.name if new  else "Not Playing"
+        new_track = new.item.name if new and new.item else "Not Playing"
         logging.info(f"New track: {new_track}")
         await store.write_song(new.item.json() if new else "null")
     return changed, new_id, new_playing

@@ -8,6 +8,7 @@
 # PRIORITY
 - Figure out error handling flow. Did stupid things initially, make retries more explicit
 - handle logout better - chrome's not firing this
+- Check for device each time - maybe store the device?
 
 
 # TODO
