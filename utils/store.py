@@ -19,9 +19,10 @@ StorePath = "./.store"
 _token_dir = "tokens"
 _song_path = "current_song"
 
-def configure(config_path: str) -> None:
+
+async def configure(config_path: str) -> None:
     """Configure the store.
-    
+
     Reads the "path" configuration from the STORE section
     of the given config file. Creates the directories if necessary.
 
@@ -41,25 +42,28 @@ def configure(config_path: str) -> None:
         os.mkdir(token_path())
     StorePath = store_path
 
-def song_path() -> None:
+
+def song_path() -> str:
     """Convenience method to get the song path"""
     return f"{StorePath}/{_song_path}"
+
 
 def token_path(user_id: str = "") -> str:
     """Convenience method to get the path to a token for a given user
 
     Note this does not check if the token exists.
-    
+
     Parameters
     ----------
     user_id: str
         ID of the user
-    
+
     Returns
     -------
     str: File path of the user's token.
     """
     return f"{StorePath}/{_token_dir}/{user_id}"
+
 
 async def list_tokens() -> List[str]:
     """List all user IDs for which we have a token.
@@ -67,8 +71,9 @@ async def list_tokens() -> List[str]:
     Returns
     -------
     List[str]: List of user IDs
-    """ 
+    """
     return os.listdir(token_path())
+
 
 async def have_token(user_id: str) -> bool:
     """Check if we have a token for a given user ID.
@@ -77,12 +82,13 @@ async def have_token(user_id: str) -> bool:
     ----------
     user_id: str
         User ID to check
-    
+
     Returns
     -------
     bool: True if we have a token for the user.
     """
     return os.path.isfile(token_path(user_id))
+
 
 async def get_token(user_id: str) -> str:
     """Get the token for a given user ID.
@@ -91,7 +97,7 @@ async def get_token(user_id: str) -> str:
     ----------
     user_id: str
         User to get token for
-    
+
     Returns
     -------
     str: token string
@@ -104,6 +110,7 @@ async def get_token(user_id: str) -> str:
         token = await fh.read()
     return token.strip()
 
+
 async def write_token(user_id: str, token: str) -> None:
     """Write a token for a given user ID.
 
@@ -113,7 +120,7 @@ async def write_token(user_id: str, token: str) -> None:
         User to write token for
     token: str
         Token to write
-    
+
     Raises
     ------
     Standard python errors for writing a file.
@@ -121,6 +128,7 @@ async def write_token(user_id: str, token: str) -> None:
     logging.info("Writing")
     async with aiofiles.open(token_path(user_id), "w") as fh:
         await fh.write(token)
+
 
 async def delete_token(user_id: str) -> None:
     """Delete a token for a given user ID.
@@ -137,6 +145,7 @@ async def delete_token(user_id: str) -> None:
     path = token_path(user_id)
     if await have_token(user_id):
         await aiofiles.os.remove(path)
+
 
 async def write_song(song_info: str) -> None:
     """Write the current song information to disk.
@@ -158,9 +167,10 @@ async def write_song(song_info: str) -> None:
     async with aiofiles.open(song_path(), "w") as fh:
         await fh.write(song_info)
 
+
 async def get_song() -> str:
     """Read song information from disk.
-    
+
     The song information is assumed to be a json encoded object.
 
     Returns
