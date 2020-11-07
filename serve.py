@@ -14,7 +14,9 @@ import tekore as tk
 
 from quart import Quart, escape, request, redirect, url_for, session, render_template
 
-from utils import store
+# from utils import store
+from utils import config
+from utils import redis as store
 from utils import spotify
 
 logging.basicConfig(level=logging.INFO)
@@ -24,8 +26,6 @@ app.secret_key = str(random.choices(string.printable, k=128))
 
 config_path = "./config.ini"
 
-spotify.configure(config_path)
-store.configure(config_path)
 
 def set_session_token(token: tk.Token) -> None:
     """Helper function to add the token to the current session
@@ -37,6 +37,7 @@ def set_session_token(token: tk.Token) -> None:
     """
     session["r_t"] = token.refresh_token
 
+
 def get_session_token() -> Optional[str]:
     """Helper function to get the current session token.
 
@@ -45,6 +46,7 @@ def get_session_token() -> Optional[str]:
     str or None: The refresh token string stored in the session
     """
     return session.get("r_t")
+
 
 def current_track_info(now_playing: Optional[tk.model.CurrentlyPlaying]) -> Dict[str, Union[str, bool]]:
     """Format current track info from Spotify
@@ -56,7 +58,7 @@ def current_track_info(now_playing: Optional[tk.model.CurrentlyPlaying]) -> Dict
     ----------
     now_playing: tk.model.CurrentlyPlaying or None
         The object returned from the spotify client
-    
+
     Returns
     -------
     {str: str or bool}: Formatted dictionary containing the current track, artist,
@@ -75,7 +77,7 @@ def current_track_info(now_playing: Optional[tk.model.CurrentlyPlaying]) -> Dict
         playing = now_playing.is_playing
         device = now_playing.device.name
         art = song.album.images[2].url
-    return {"title": title, "artist": artist, "playing": playing, "device":device, "art":art}
+    return {"title": title, "artist": artist, "playing": playing, "device": device, "art": art}
 
 
 @app.route("/main", methods=["GET"])
@@ -83,6 +85,7 @@ async def main():
     """Display any available information about the main user."""
     try:
         main_token = await store.get_token("main")
+        logging.info(main_token)
     except:
         return f"No token for main user. Please <a href='{url_for('main_register')}'>log in to register as main user</a>."
     try:
@@ -96,17 +99,18 @@ async def main():
         track_info = current_track_info(now_playing)
         return await render_template("main.html", track_info=track_info, name=current_user.display_name, followers=followers)
 
+
 @app.route("/main/register")
 async def main_register():
     """Register a main user
-    
+
     Unlike followers, this is separate from the display flow to allow
     easier debugging.
     """
     if await store.have_token("main"):
         return f"Already have a main user. Go to <a href='{url_for('main_reset')}'>reset</a> to clear main."
     return redirect(spotify.auth_url("main"))
-        
+
 
 @app.route("/main/reset")
 async def main_reset():
@@ -114,6 +118,7 @@ async def main_reset():
     logging.info("Deregistering main user")
     await store.delete_token("main")
     return "Reset main"
+
 
 @app.route("/logout")
 async def logout():
@@ -124,7 +129,7 @@ async def logout():
     """
     async def logout_process(token_str: str):
         """Remove a given token from the store.
-        
+
         Note we need to get a new client for the token first, since tokens are
         stored by user_id.
 
@@ -144,6 +149,7 @@ async def logout():
             logging.exception("Failed to deregister user")
     asyncio.create_task(logout_process(get_session_token()))
     return "Logged out."
+
 
 @app.route("/auth", methods=["GET"])
 async def auth():
@@ -165,6 +171,7 @@ async def auth():
         await store.write_token(user_id, token.refresh_token)
         logging.info("[AUTH FLOW] Redirect to /.")
         return redirect(f"/")
+
 
 @app.route("/token", methods=["GET"])
 async def token():
@@ -188,17 +195,27 @@ async def token():
     set_session_token(token)
     return token.access_token
 
+
 @app.route('/', methods=["POST", "GET", "PUT"])
 async def index():
     """Main index page. Redirects into the auth flow if no session token is found"""
     logging.info("[AUTH FLOW: index] Hit Index")
     session_token = get_session_token()
     if not session_token:
-        logging.info("[AUTH FLOW: index] No Session cookie. Redirecting to auth")
+        logging.info(
+            "[AUTH FLOW: index] No Session cookie. Redirecting to auth")
         return redirect(spotify.auth_url("follow"))
     else:
         logging.info("[AUTH FLOW: index] Session cookie: %s", session_token)
         return await render_template("index.html")
 
+
+@app.before_serving
+async def setup():
+    await store.configure()
+    spotify.configure()
+
+
 if __name__ == "__main__":
+    config.load("./config.ini")
     app.run()

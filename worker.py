@@ -12,8 +12,11 @@ from typing import Dict, Tuple, Optional
 
 import tekore as tk
 
+from utils import config
 from utils import spotify
-from utils import store
+#from utils import store
+from utils import redis as store
+
 
 class FatalError(Exception):
     pass
@@ -21,6 +24,8 @@ class FatalError(Exception):
 #######
 # SYNC OPERATIONS
 #######
+
+
 async def check_new(leader: tk.Spotify, current_id: Optional[str], current_playing: bool) -> Tuple[bool, str, bool]:
     """Check if the leader is playing a different track than the provided ID.
 
@@ -56,6 +61,7 @@ async def check_new(leader: tk.Spotify, current_id: Optional[str], current_playi
         await store.write_song(new.item.json() if new else "null")
     return changed, new_id, new_playing
 
+
 async def sync(leader: tk.Spotify, followers: Dict[str, tk.Spotify], song_id: Optional[str], playing: bool) -> None:
     """Sync the list of followers to the leader
 
@@ -80,6 +86,7 @@ async def sync(leader: tk.Spotify, followers: Dict[str, tk.Spotify], song_id: Op
     else:
         logging.info(f"Got new track: {song_id}")
         await play_to_all(song_id, leader, followers)
+
 
 async def play_to_all(track_id: str, leader: tk.Spotify, followers: Dict[str, tk.Spotify]) -> None:
     """Synchronize playback of a given track to all followers and the leader.
@@ -113,6 +120,7 @@ async def play_to_all(track_id: str, leader: tk.Spotify, followers: Dict[str, tk
         if not success:
             logging.info(f"couldn't play track for {user}")
 
+
 async def stop_all(followers: Dict[str, tk.Spotify]):
     """Stop all followers.
 
@@ -127,6 +135,8 @@ async def stop_all(followers: Dict[str, tk.Spotify]):
 #######
 # Leader and Follower Setup
 #######
+
+
 async def setup_follower(user_id: str, client: Optional[tk.Spotify]) -> Tuple[str, Optional[tk.Spotify]]:
     """Check if a follower is correctly set up.
 
@@ -142,7 +152,7 @@ async def setup_follower(user_id: str, client: Optional[tk.Spotify]) -> Tuple[st
         ID of the user to setup and verify tokens.
     client: tk.Spotify or None
         An existing client to compare to the token on disk
-    
+
     Returns
     -------
     (str, tk.Spotify or None): The provided user id and a spotify client if we
@@ -152,12 +162,13 @@ async def setup_follower(user_id: str, client: Optional[tk.Spotify]) -> Tuple[st
         token_str = await store.get_token(user_id)
         if spotify.client_is_good(client, token_str):
             return user_id, client
-        display_name, client = await spotify.get_user(token_str) 
+        display_name, client = await spotify.get_user(token_str)
         await spotify.set_device(client)
         return user_id, client
     except Exception as err:
         logging.exception("Could not set up user %s", user_id)
         return user_id, None
+
 
 async def check_followers(followers: Dict[str, tk.Spotify]) -> Dict[str, tk.Spotify]:
     """Check a dictionary of followers to ensure clients and tokens are up to date.
@@ -179,9 +190,11 @@ async def check_followers(followers: Dict[str, tk.Spotify]) -> Dict[str, tk.Spot
     loaded_users = await asyncio.gather(*[
         setup_follower(username, followers.get(username))
         for username in users])
-    followers = {user:client for user, client in loaded_users if client is not None}
+    followers = {user: client for user,
+                 client in loaded_users if client is not None}
     logging.info(followers)
     return followers
+
 
 async def check_leader(leader: Optional[tk.Spotify]) -> Optional[tk.Spotify]:
     """Check if our leader user is up to date and still registered.
@@ -210,15 +223,20 @@ async def check_leader(leader: Optional[tk.Spotify]) -> Optional[tk.Spotify]:
 #######
 # And now the magic.
 #######
+
+
 async def main() -> None:
     """Main sync loop
-    
+
     The loop runs every 2 seconds. It validates the leader user, checks if playback
     has changed, and only if it has, updates the followers and pushes the changes.
 
     It runs indefinitely, or until Spotify's API digs up another reason to throw an error
     that I haven't seen before.
-    """    
+    """
+    config.load("./config.ini")
+    await store.configure()
+    spotify.configure()
     leader = None
     followers = dict()
     song_id, playing = None, False
@@ -234,5 +252,4 @@ async def main() -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    spotify.configure("./config.ini")
     asyncio.run(main())
