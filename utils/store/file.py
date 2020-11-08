@@ -22,7 +22,11 @@ _song_path = "current_song"
 
 
 class Store:
-    async def configure(self) -> None:
+    store_path = "./.store"
+    _token_dir = "tokens"
+    _song_path = "current_song"
+
+    async def __init__(self) -> None:
         """Configure the store.
 
         Reads the "path" configuration from the STORE section
@@ -33,19 +37,20 @@ class Store:
         config_path: str
             Path to the configuration file.
         """
-        global StorePath
-        store_path = config.STORE_PATH
-        if not os.path.isdir(store_path):
-            os.mkdir(store_path)
+        self.store_path = config.FILESTORE_PATH
+        if not os.path.isdir(self.store_path):
+            os.mkdir(self.store_path)
         if not os.path.isdir(token_path()):
             os.mkdir(token_path())
-        StorePath = store_path
 
-    def song_path() -> str:
+    async def init(self):
+        pass
+
+    def song_path(self) -> str:
         """Convenience method to get the song path"""
-        return f"{StorePath}/{_song_path}"
+        return f"{self.store_path}/{_song_path}"
 
-    def token_path(user_id: str = "") -> str:
+    def token_path(self, user_id: str = "") -> str:
         """Convenience method to get the path to a token for a given user
 
         Note this does not check if the token exists.
@@ -61,7 +66,7 @@ class Store:
         """
         return f"{StorePath}/{_token_dir}/{user_id}"
 
-    async def list_tokens() -> List[str]:
+    async def list_tokens(self) -> List[str]:
         """List all user IDs for which we have a token.
 
         Returns
@@ -70,7 +75,7 @@ class Store:
         """
         return os.listdir(token_path())
 
-    async def have_token(user_id: str) -> bool:
+    async def have_token(self, user_id: str) -> bool:
         """Check if we have a token for a given user ID.
 
         Parameters
@@ -84,7 +89,7 @@ class Store:
         """
         return os.path.isfile(token_path(user_id))
 
-    async def get_token(user_id: str) -> str:
+    async def get_token(self, user_id: str) -> str:
         """Get the token for a given user ID.
 
         Parameters
@@ -104,7 +109,7 @@ class Store:
             token = await fh.read()
         return token.strip()
 
-    async def write_token(user_id: str, token: str) -> None:
+    async def write_token(self, user_id: str, token: str) -> None:
         """Write a token for a given user ID.
 
         Parameters
@@ -122,7 +127,7 @@ class Store:
         async with aiofiles.open(token_path(user_id), "w") as fh:
             await fh.write(token)
 
-    async def delete_token(user_id: str) -> None:
+    async def delete_token(self, user_id: str) -> None:
         """Delete a token for a given user ID.
 
         Parameters
@@ -138,7 +143,7 @@ class Store:
         if await have_token(user_id):
             await aiofiles.os.remove(path)
 
-    async def write_song(song_info: str) -> None:
+    async def write_song(self, song_info: str) -> None:
         """Write the current song information to disk.
 
         song_info is expected to be in JSON form. It is JSON and not
@@ -158,7 +163,7 @@ class Store:
         async with aiofiles.open(song_path(), "w") as fh:
             await fh.write(song_info)
 
-    async def get_song() -> str:
+    async def get_song(self) -> str:
         """Read song information from disk.
 
         The song information is assumed to be a json encoded object.

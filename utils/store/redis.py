@@ -1,75 +1,61 @@
 import aioredis
 
-import configparser
 import json
 import logging
-import os
 
 from typing import List
 
 from utils import config
 
-# This is Bad, I'm aware, but it's a transition step to get
-# Redis backing work before reworking the backends.
-REDIS = None
 
+class Store:
+    async def init(self):
+        self._redis = await aioredis.create_redis_pool(
+            (config.REDIS_HOST, int(config.REDIS_PORT)),
+            db=int(config.REDIS_DB),
+            encoding="utf-8",
+        )
+        try:
+            self._redis.ping()
+        except aioredis.ConnectionClosedError as err:
+            logging.exception("Could not connect to Redis!")
+            raise  # TODO: Store exceptions
+        else:
+            logging.info("Connected to redis on %s:%s/%s",
+                         self._redis.address[0], self._redis.address[1], self._redis.db)
 
-async def configure(config_path: str) -> None:
-    global REDIS
-    REDIS = await aioredis.create_redis_pool(
-        (config.REDIS_HOST, int(config.REDIS_PORT)),
-        db=int(config.REDIS_DB),
-        encoding="utf-8",
-    )
-    try:
-        REDIS.ping()
-    except aioredis.ConnectionClosedError as err:
-        logging.exception("Could not connect to Redis!")
-        raise  # TODO: Store exceptions
-    else:
-        logging.info("Connected to redis on %s:%s/%s", host, port, db)
+    def song_path(self) -> str:
+        return "current_song"
 
+    def token_path(self, user_id: str = "") -> str:
+        return f"token/{user_id}"
 
-def song_path() -> str:
-    return "current_song"
+    async def list_tokens(self) -> List[str]:
+        tokens = await self._redis.keys(self.token_path("*"))
+        logging.info(tokens)
+        logging.info([token.partition("/")[2] for token in tokens])
+        return [token.partition("/")[2] for token in tokens]
 
+    async def have_token(self, user_id: str) -> bool:
+        return bool(await self._redis.exists(self.token_path(user_id)))
 
-def token_path(user_id: str = "") -> str:
-    return f"token/{user_id}"
+    async def get_token(self, user_id: str) -> str:
+        token = await self._redis.get(self.token_path(user_id))
+        if not token:
+            # TODO: Fix exceptions.
+            raise Exception("No token for user %s" % user_id)
+        else:
+            return token
 
+    async def write_token(self, user_id: str, token: str) -> None:
+        await self._redis.set(self.token_path(user_id), token)
 
-async def list_tokens() -> List[str]:
-    tokens = await REDIS.keys(token_path("*"))
-    logging.info(tokens)
-    logging.info([token.partition("/")[2] for token in tokens])
-    return [token.partition("/")[2] for token in tokens]
+    async def delete_token(self, user_id: str) -> None:
+        await self._redis.delete(self.token_path(user_id))
 
+    async def write_song(self, song_info: str) -> None:
+        # TODO: This should be taking a flat dictionary, not JSON
+        await self._redis.set(self.song_path(), song_info)
 
-async def have_token(user_id: str) -> bool:
-    return bool(await REDIS.exists(token_path(user_id)))
-
-
-async def get_token(user_id: str) -> str:
-    token = await REDIS.get(token_path(user_id))
-    if not token:
-        # TODO: Fix exceptions.
-        raise Exception("No token for user %s" % user_id)
-    else:
-        return token
-
-
-async def write_token(user_id: str, token: str) -> None:
-    await REDIS.set(token_path(user_id), token)
-
-
-async def delete_token(user_id: str) -> None:
-    await REDIS.delete(token_path(user_id))
-
-
-async def write_song(song_info: str) -> None:
-    # TODO: This should be taking a flat dictionary, not JSON
-    await REDIS.set(song_path(), song_info)
-
-
-async def get_song() -> str:
-    await REDIS.get(song_path())
+    async def get_song(self) -> str:
+        await self._redis.get(self.song_path())
