@@ -11,22 +11,28 @@ from typing import Optional, Tuple
 
 import tekore as tk
 
+from utils import config
+
 Credentials = None
 
 Scopes = " ".join((
     "user-read-playback-state",
     "user-modify-playback-state",
     "streaming", "user-read-email", "user-read-private"
-    ))
+))
+
 
 class BadToken(Exception):
     pass
 
+
 class BadClient(Exception):
     pass
 
+
 class NoDevices(Exception):
     pass
+
 
 def configure(config_path: str):
     """Read the "SPOTIFY" section from the given config path and configure the Credentials object.
@@ -36,9 +42,14 @@ def configure(config_path: str):
     config_path: str
         Path to the configuration file.
     """
-    client_id, client_secret, redirect_uri = tk.config_from_file(config_path, section="SPOTIFY")
+    client_id = config.SPOTIFY_CLIENT_ID
+    client_secret = config.SPOTIFY_CLIENT_SECRET
+    redirect_uri = config.SPOTIFY_REDIRECT_URI
     global Credentials
-    Credentials = tk.Credentials(client_id, client_secret, redirect_uri, asynchronous=True)
+    logging.info(redirect_uri)
+    Credentials = tk.Credentials(
+        client_id, client_secret, redirect_uri, asynchronous=True)
+
 
 def auth_url(state: str) -> str:
     """Generate an authorization URL
@@ -58,7 +69,9 @@ def auth_url(state: str) -> str:
 ########
 # PLAYBACK
 ########
-async def play_track(user: str, client: tk.Spotify, track_id: str, retry: bool=False) -> Tuple[str, bool]:
+
+
+async def play_track(user: str, client: tk.Spotify, track_id: str, retry: bool = False) -> Tuple[str, bool]:
     """Play a track for a client.
 
     This method will attempt to reload the client if it fails the first time.
@@ -77,7 +90,7 @@ async def play_track(user: str, client: tk.Spotify, track_id: str, retry: bool=F
     retry: bool=False
         If this is a retry. If retry is set to False, a failure to play will
         trigger a user reload attempt.
-    
+
     Returns
     -------
     (str, bool): The user id and whether track was started successfully.
@@ -87,23 +100,25 @@ async def play_track(user: str, client: tk.Spotify, track_id: str, retry: bool=F
     Nothing. This function intentionally swallows errors.
     """
     try:
-        await client.playback_start_tracks([track_id,])
+        await client.playback_start_tracks([track_id, ])
         return user, True
     except:
         logging.exception("Error playng track for user %s", user)
         if retry:
             return user, False
         try:
-            _, client = await spotify.get_user(client.token.refresh_token) 
+            _, client = await spotify.get_user(client.token.refresh_token)
             await spotify.set_device(client)
             return await play_track(user, client, track_id, retry=True)
         except:
-            logging.exception("Error refreshing user %s during play attempt", user)
+            logging.exception(
+                "Error refreshing user %s during play attempt", user)
             return user, False
+
 
 async def stop(client: tk.Spotify) -> None:
     """Stop playback for the given client.
-    
+
     This function swallows exceptions, since the spotify API throws an error
     when you try to stop an already stopped client, instead of just saying
     "yes sure that's fine" and going and sipping tea or something.
@@ -112,7 +127,7 @@ async def stop(client: tk.Spotify) -> None:
     ----------
     client: tk.Spotify
         Client to stop playback on
-    
+
     Raises
     ------
     Nothing
@@ -122,7 +137,8 @@ async def stop(client: tk.Spotify) -> None:
     except:
         pass
 
-async def get_current_track(client: tk.Spotify, retry: bool=False) -> Optional[tk.model.CurrentlyPlaying]:
+
+async def get_current_track(client: tk.Spotify, retry: bool = False) -> Optional[tk.model.CurrentlyPlaying]:
     """Get the currently-playing track.
 
     This function will retry once, attempting to reload the client to get past
@@ -135,12 +151,12 @@ async def get_current_track(client: tk.Spotify, retry: bool=False) -> Optional[t
     retry: bool
         Whether this query is a retry. If False, client will be reloaded and a retry
         will be attempted if Spotify returns Unauthorized.
-    
+
     Returns
     -------
     tk.model.CurrentlyPlaying or None: Info about the currently playing track. Tekore
         returns None if nothing is playing, so we do as well.
-    
+
     Raises
     ------
     tk.Unauthorised if the client could not be authorized.
@@ -161,6 +177,8 @@ async def get_current_track(client: tk.Spotify, retry: bool=False) -> Optional[t
 #######
 # BASIC USER SETUP
 #######
+
+
 async def token_from_code(auth_code: str) -> tk.Token:
     """Get a spotify token from an authorization code.
 
@@ -168,12 +186,13 @@ async def token_from_code(auth_code: str) -> tk.Token:
     ----------
     auth_code: str
         Authorization code returned from Spotify.
-    
+
     Returns
     -------
     tk.Token: Token generated from the authorization code.
     """
     return await Credentials.request_user_token(auth_code)
+
 
 async def get_user(token_str: str) -> Tuple[str, tk.Spotify]:
     """Get a client with a token string
@@ -182,7 +201,7 @@ async def get_user(token_str: str) -> Tuple[str, tk.Spotify]:
     ----------
     token_str: str
         String of a refresh token.
-    
+
     Returns
     -------
     (str, tk.Spotify): Tuple of the user's display name and a spotify client. 
@@ -199,6 +218,7 @@ async def get_user(token_str: str) -> Tuple[str, tk.Spotify]:
         logging.info(f"Got client for {display_name}")
         return display_name, client
 
+
 async def get_user_id(token: tk.Token) -> str:
     """Return a user's ID from their token.
 
@@ -206,7 +226,7 @@ async def get_user_id(token: tk.Token) -> str:
     ----------
     token: tk.Token
         Spotify Token to query
-    
+
     Returns
     -------
     str: The user's ID.
@@ -219,6 +239,7 @@ async def get_user_id(token: tk.Token) -> str:
         raise
     else:
         return user.id
+
 
 async def refresh_token(token_str: str) -> tk.Token:
     """Return a refreshed Token given a token refresh string
@@ -244,6 +265,7 @@ async def refresh_token(token_str: str) -> tk.Token:
     else:
         return token
 
+
 async def get_client(token: tk.Token) -> tk.Spotify:
     """Get a spotify client from a token.
 
@@ -251,7 +273,7 @@ async def get_client(token: tk.Token) -> tk.Spotify:
     ----------
     token: tk.Token
         An up-to-date token to generate a client from
-    
+
     Returns
     -------
     tk.Spotify: Spotify client
@@ -268,7 +290,8 @@ async def get_client(token: tk.Token) -> tk.Spotify:
     else:
         return client
 
-async def set_device(client: tk.Spotify, device_name: str="Game Night") -> None:
+
+async def set_device(client: tk.Spotify, device_name: str = "Game Night") -> None:
     """Set the active device for the client to a device that matches the provided name.
 
     If multiple matching devices are found, the first one will be used. 
@@ -279,7 +302,7 @@ async def set_device(client: tk.Spotify, device_name: str="Game Night") -> None:
         Client to set the device on
     device_name: str = "Game Night"
         Name of the device to make active.
-    
+
     Raises
     ------
     NoDevices if no devices are found.
@@ -295,6 +318,8 @@ async def set_device(client: tk.Spotify, device_name: str="Game Night") -> None:
 #########
 # Utility
 #########
+
+
 async def refresh_client(client: tk.Spotify) -> tk.Spotify:
     """Return a new client using the given client's token.
 
@@ -302,7 +327,7 @@ async def refresh_client(client: tk.Spotify) -> tk.Spotify:
     ----------
     client: tk.Spotify
         The client to be refreshed
-    
+
     Returns
     -------
     tk.Spotify: a new client built from the given client's refresh token.
@@ -315,9 +340,11 @@ async def refresh_client(client: tk.Spotify) -> tk.Spotify:
         _, client = await spotify.get_user(client.token.refresh_token)
     except Exception as err:
         logging.exception("Error refreshing client")
-        raise BadToken("Could not refresh client using client's token") from err
+        raise BadToken(
+            "Could not refresh client using client's token") from err
     else:
         return client
+
 
 def client_is_good(client: Optional[tk.Spotify], token_str: str) -> bool:
     """Check if a client is still good.
@@ -334,7 +361,7 @@ def client_is_good(client: Optional[tk.Spotify], token_str: str) -> bool:
         Client to check if we have one.
     token_str: str
         Token from the store to check against the client
-    
+
     Returns
     -------
     bool: True if provided a client, that client has a token that matches
@@ -343,7 +370,7 @@ def client_is_good(client: Optional[tk.Spotify], token_str: str) -> bool:
     if client is None:
         # We got passed no client, which is obviously bad
         return False
-    if token_str != client.token.refresh_token: 
+    if token_str != client.token.refresh_token:
         # The token in the client doesn't match the one on disk.
         return False
     if client.token.is_expiring:

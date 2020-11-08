@@ -7,6 +7,8 @@ import os
 
 from typing import List
 
+from utils import config
+
 # This is Bad, I'm aware, but it's a transition step to get
 # Redis backing work before reworking the backends.
 REDIS = None
@@ -14,16 +16,9 @@ REDIS = None
 
 async def configure(config_path: str) -> None:
     global REDIS
-    c = configparser.ConfigParser()
-    with open(config_path) as fh:
-        c.read_file(fh)
-    config = c["REDIS"]
-    host = config["HOST"]
-    port = config.getint("PORT")
-    db = config.getint("DB")
     REDIS = await aioredis.create_redis_pool(
-        (host, port),
-        db=db,
+        (config.REDIS_HOST, int(config.REDIS_PORT)),
+        db=int(config.REDIS_DB),
         encoding="utf-8",
     )
     try:
