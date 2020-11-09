@@ -255,7 +255,8 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--config", default=None,
                         help="Supplemental config file to load")
     args = parser.parse_args()
-    if args.config_file:
-        config.load(args.config_file)
+    if args.config:
+        config.load(args.config)
     logging.basicConfig(level=config.LOG_LEVEL)
-    asyncio.run(main(args.config))
+    logging.debug("Debug logs enabled")
+    asyncio.run(main())

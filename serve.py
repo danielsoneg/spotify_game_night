@@ -221,4 +221,5 @@ if __name__ == "__main__":
     if args.config:
         config.load(args.config)
     logging.basicConfig(level=config.LOG_LEVEL)
+    logging.debug("Debug logs enabled")
     app.run()
