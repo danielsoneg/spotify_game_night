@@ -1,12 +1,21 @@
+# from project root: docker-compose --env-file docker/prod.env -f docker/docker-compose.yml --project-directory=. up
 version: "3.8"
 services:
   web:
     build:
       context: .
-      dockerfile: ./docker/image/Dockerfile
+      dockerfile: docker/image/Dockerfile
     image: spotify:latest
     command: hypercorn -b 0.0.0.0:5000 serve
-    env_file: ./prod.env
+    environment:
+      STORE_NAME: ${STORE_NAME}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      SPOTIFY_REDIRECT_URI: ${SPOTIFY_REDIRECT_URI}
+      LOG_LEVEL: ${LOG_LEVEL}
     ports:
       - "5000:5000"
     depends_on:
@@ -14,8 +23,16 @@ services:
   worker:
     build:
       context: .
-      dockerfile: ./docker/image/Dockerfile
-    env_file: ./prod.env
+      dockerfile: docker/image/Dockerfile
+    environment:
+      STORE_NAME: ${STORE_NAME}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      SPOTIFY_REDIRECT_URI: ${SPOTIFY_REDIRECT_URI}
+      LOG_LEVEL: ${LOG_LEVEL}
     image: spotify:latest
     command: python worker.py
     depends_on:
