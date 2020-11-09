@@ -1,10 +1,9 @@
 """
 Main API server
 """
+import argparse
 import asyncio
-import json
 import logging
-import os
 import random
 import string
 
@@ -12,19 +11,15 @@ from typing import Optional, Dict, Union
 
 import tekore as tk
 
-from quart import Blueprint, Quart, escape, request, redirect, url_for, session, render_template
+from quart import Quart, request, redirect, url_for, session, render_template
 
 # from utils import store
 from utils import config
 from utils.store import get_store
 from utils.spotify import Spotify
 
-logging.basicConfig(level=logging.INFO)
-
 app = Quart(__name__)
 app.secret_key = str(random.choices(string.printable, k=128))
-
-config_path = "./config.ini"
 
 
 def set_session_token(token: tk.Token) -> None:
@@ -219,5 +214,11 @@ async def setup():
 
 
 if __name__ == "__main__":
-    config.load("./config.ini")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", default=None,
+                        help="Supplemental config file to load")
+    args = parser.parse_args()
+    if args.config:
+        config.load(args.config)
+    logging.basicConfig(level=config.LOG_LEVEL)
     app.run()
