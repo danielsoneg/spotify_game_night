@@ -3,10 +3,9 @@
 Run as a separate single process. Reads the Main and follower tokens from the store,
 and attempts to have followers play everything the main user does.
 """
-import aiofiles
+import argparse
 import asyncio
 import logging
-import os
 
 from typing import Dict, Tuple, Optional
 
@@ -14,7 +13,6 @@ import tekore as tk
 
 from utils import config
 from utils.spotify import Spotify
-
 from utils.store import get_store
 
 
@@ -247,12 +245,17 @@ class Worker:
 
 
 async def main():
-    config.load("./config.ini")
-    spotify = Spotify()
     store = await get_store()
+    spotify = Spotify()
     worker = Worker(store, spotify)
     await worker.run()
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    asyncio.run(main())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", default=None,
+                        help="Supplemental config file to load")
+    args = parser.parse_args()
+    if args.config_file:
+        config.load(args.config_file)
+    logging.basicConfig(level=config.LOG_LEVEL)
+    asyncio.run(main(args.config))
