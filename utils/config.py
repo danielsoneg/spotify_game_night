@@ -29,10 +29,22 @@ from types import ModuleType
 class ConfigModule(ModuleType):
     __config_object = configparser.ConfigParser()
 
-    def load(self, config_file=None):
-        if config_file:
+    class ConfigError(Exception):
+        """Generic configuration exception"""
+
+    class BadConfigFile(ConfigError):
+        """Raised for errors reading provided config file"""
+
+    class MissingConfigKey(ConfigError):
+        """Raised when a config item is missing"""
+
+    def load(self, config_file):
+        try:
             with open(config_file) as fh:
                 self.__config_object.read_file(fh)
+        except Exception as err:
+            logging.exception("Could not read %s", config_file)
+            raise ConfigModule.BadConfigFile(err)
 
     def __getattr__(self, attr):
         if "_" in attr and attr != "__config_object":
@@ -42,6 +54,9 @@ class ConfigModule(ModuleType):
             if section in self.__config_object:
                 if key in self.__config_object[section]:
                     return self.__config_object[section][key]
+            else:
+                raise self.MissingConfigKey(
+                    "%s not found in environment or config file." % attr)
         raise AttributeError("'%s' object has no attribute %s" %
                              (self.__class__.__name__, attr))
 
