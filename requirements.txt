@@ -1,2 +1,3 @@
+aioredis>=1.3,<2
 tekore>=2,<3
 quart==0.13.0
