@@ -1,11 +1,8 @@
 # Spotify "Game Night" App
 ## TL;DR:
 ```
-$ pip install -r requirements.txt
-$ cp config.template.ini config.ini && vim config.ini
-$ ln -s $your_webroot/static ./static
-$ python serve.py &
-$ python worker.py
+$ cp docker/template.env docker.prod.env && vim docker/prod.env
+$ docker-compose --env-file docker/prod.env -f docker/docker-compose.yml --project-directory=. up
 ```
 
 ## What does it do?
@@ -18,7 +15,7 @@ Probably! I needed a project, and I wanted to play with Python's new asyncio lib
 First, a precaution: This was written in about 2 weeks for personal use. It has not been exhaustively tested, and there are probably a lot of rough edges. This should _not_ be considered a production-ready app, and you run it at your own risk.
 
 ### TL;DR:
-$ docker-compose --env-file docker/prod.env -f docker/docker-compose.yml --project-directory=. up`
+`$ docker-compose --env-file docker/prod.env -f docker/docker-compose.yml --project-directory=. up`
 
 ### Config:
 There's a docker compose file that will bring up the worker, server, and a Redis instance. You'll need to set up a Spotify developer account and create the Docker environment file - check `docker/template.env` for the syntax. Note that **EVERY LISTENER MUST HAVE SPOTIFY PREMIUM**. I didn't make the rules, I just stumbled into them during development.
