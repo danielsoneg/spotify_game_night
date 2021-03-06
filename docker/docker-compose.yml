@@ -1,5 +1,5 @@
 # from project root: docker-compose --env-file docker/prod.env -f docker/docker-compose.yml --project-directory=. up
-version: "3.8"
+version: "3.7"
 services:
   web:
     build:
